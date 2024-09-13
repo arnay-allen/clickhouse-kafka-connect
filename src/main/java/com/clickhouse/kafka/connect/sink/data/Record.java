@@ -109,14 +109,16 @@ public class Record {
         Map<String,Object> map = new HashMap<>();
         ObjectMapper mapper = new ObjectMapper();
         try {
-            JsonNode rootNode = mapper.readTree(sinkRecord.value().toString());
             if ("cdc".equals(source)) {
+                JsonNode rootNode = mapper.readTree(sinkRecord.value().toString());
                 map.put("_id", rootNode.get("_id").asText());
                 map.put("data", mapper.writeValueAsString(rootNode));
                 map.put("partition_key", System.currentTimeMillis());
             } else if ("pes".equals(source)) {
+                String jsonString = mapper.writeValueAsString(sinkRecord.value()); // Convert to valid JSON string
+                JsonNode rootNode = mapper.readTree(jsonString);
                 map.put("id", rootNode.get("id").asText());
-                JsonNode event = rootNode.get("data");
+                JsonNode event = rootNode.get("event");
                 map.put("event", mapper.writeValueAsString(event));
                 map.put("eventTimestamp", rootNode.get("eventTimestamp").asLong());
             }
