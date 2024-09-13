@@ -1,7 +1,7 @@
 package com.clickhouse.kafka.connect.sink;
 
 import com.clickhouse.client.*;
-import com.clickhouse.kafka.connect.ClickHouseSinkConnector;
+import com.clickhouse.kafka.connect.RawClickHouseSinkConnector;
 import com.clickhouse.kafka.connect.sink.data.Record;
 import com.clickhouse.kafka.connect.sink.db.ClickHouseWriter;
 import com.clickhouse.kafka.connect.sink.db.DBWriter;

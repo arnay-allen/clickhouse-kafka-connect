@@ -13,14 +13,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class ClickHouseSinkConnector extends SinkConnector {
+public class RawClickHouseSinkConnector extends SinkConnector {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ClickHouseSinkConnector.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RawClickHouseSinkConnector.class);
 
     private String hostname;
     private String port;

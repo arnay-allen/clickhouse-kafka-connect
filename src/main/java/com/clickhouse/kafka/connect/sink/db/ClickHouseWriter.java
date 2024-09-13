@@ -37,14 +37,13 @@ import java.time.temporal.ChronoField;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.DataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.google.common.collect.Streams;
-import reactor.util.function.Tuples;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -276,9 +275,14 @@ public class ClickHouseWriter implements DBWriter {
                     } else {
                         BinaryStreamUtils.writeUnsignedInt16(stream, (Integer) value.getObject());
                     }
+                } else if (value.getFieldType().equals(Schema.Type.STRING)) {
+                    Date date = new Date(Long.parseLong(value.getObject().toString()));
+                    int timeInDays = (int) TimeUnit.MILLISECONDS.toDays(date.getTime());
+                    BinaryStreamUtils.writeUnsignedInt16(stream, timeInDays);
                 } else {
                     unsupported = true;
                 }
+
                 break;
             case Date32:
                 if (value.getFieldType().equals(Schema.Type.INT32)) {

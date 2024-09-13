@@ -6,6 +6,9 @@ import com.clickhouse.kafka.connect.sink.data.convert.SchemalessRecordConvertor;
 import com.clickhouse.kafka.connect.sink.data.convert.SchemaRecordConvertor;
 import com.clickhouse.kafka.connect.sink.data.convert.StringRecordConvertor;
 import com.clickhouse.kafka.connect.sink.kafka.OffsetContainer;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -15,10 +18,12 @@ import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.Map;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.regex.Pattern;
 
 public class Record {
+    private static final Logger log = LoggerFactory.getLogger(Record.class);
     @Getter
     private OffsetContainer recordOffsetContainer = null;
     private Object value;
@@ -54,6 +59,9 @@ public class Record {
     private static final RecordConvertor schemalessRecordConvertor = new SchemalessRecordConvertor();
     private static final RecordConvertor emptyRecordConvertor = new EmptyRecordConvertor();
     private static final RecordConvertor stringRecordConvertor = new StringRecordConvertor();
+
+    private static final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+
     private static RecordConvertor getConvertor(Schema schema, Object data) {
         if (data == null ) {
             return emptyRecordConvertor;
@@ -73,6 +81,49 @@ public class Record {
     public static Record convert(SinkRecord sinkRecord, boolean splitDBTopic, String dbTopicSeparatorChar,String database) {
         RecordConvertor recordConvertor = getConvertor(sinkRecord.valueSchema(), sinkRecord.value());
         return recordConvertor.convert(sinkRecord, splitDBTopic, dbTopicSeparatorChar, database);
+    }
+
+    public static Record convert(SinkRecord sinkRecord, boolean splitDBTopic, String dbTopicSeparatorChar,String database, String source) {
+        String topic = sinkRecord.topic();
+        if (splitDBTopic) {
+            String[] parts = topic.split(Pattern.quote(dbTopicSeparatorChar));
+            if (parts.length == 2) {
+                database = parts[0];
+                topic = parts[1];
+            }
+        }
+        int partition = sinkRecord.kafkaPartition().intValue();
+        long offset = sinkRecord.kafkaOffset();
+        List<Field> fields = new ArrayList<>();
+        Map<?,?> map = getMapFromSinkRecord(sinkRecord, source);
+        Map<String, Data> data = new HashMap<>();
+        int index = 0;
+        map.forEach((key,val) -> {
+            fields.add(new Field(key.toString(), index, Schema.STRING_SCHEMA));
+            data.put(key.toString(), new Data(Schema.STRING_SCHEMA, val == null ? null : val.toString()));
+        });
+        return new Record(SchemaType.SCHEMA, new OffsetContainer(topic, partition, offset), fields, data, database, sinkRecord);
+    }
+
+    private static Map<?,?> getMapFromSinkRecord(SinkRecord sinkRecord, String source) {
+        Map<String,Object> map = new HashMap<>();
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            JsonNode rootNode = mapper.readTree(sinkRecord.value().toString());
+            if ("cdc".equals(source)) {
+                map.put("_id", rootNode.get("_id").asText());
+                map.put("data", mapper.writeValueAsString(rootNode));
+                map.put("partition_key", System.currentTimeMillis());
+            } else if ("pes".equals(source)) {
+                map.put("id", rootNode.get("id").asText());
+                JsonNode event = rootNode.get("data");
+                map.put("event", mapper.writeValueAsString(event));
+                map.put("eventTimestamp", rootNode.get("eventTimestamp").asLong());
+            }
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        return map;
     }
 
     public static Record newRecord(SchemaType schemaType, String topic, int partition, long offset, List<Field> fields, Map<String, Data> jsonMap, String database, SinkRecord sinkRecord) {

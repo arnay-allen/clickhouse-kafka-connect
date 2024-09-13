@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.clickhouse.kafka.connect.ClickHouseSinkConnector.CLIENT_VERSION;
+import static com.clickhouse.kafka.connect.RawClickHouseSinkConnector.CLIENT_VERSION;
 
 @Getter
 public class ClickHouseSinkConfig {
@@ -47,6 +47,7 @@ public class ClickHouseSinkConfig {
     public static final String DB_TOPIC_SPLIT_CHAR = "dbTopicSplitChar";
     public static final String KEEPER_ON_CLUSTER = "keeperOnCluster";
     public static final String DATE_TIME_FORMAT = "dateTimeFormats";
+    public static final String SOURCE = "source";
 
     public static final int MILLI_IN_A_SEC = 1000;
     private static final String databaseDefault = "default";
@@ -92,6 +93,7 @@ public class ClickHouseSinkConfig {
     private final String keeperOnCluster;
     private final Map<String, DateTimeFormatter> dateTimeFormats;
     private final String clientVersion;
+    private final String source;
 
     public enum InsertFormats {
         NONE,
@@ -180,6 +182,7 @@ public class ClickHouseSinkConfig {
         tableRefreshInterval = Long.parseLong(props.getOrDefault(TABLE_REFRESH_INTERVAL, tableRefreshIntervalDefault.toString())) * MILLI_IN_A_SEC; // multiple in 1000 milli
         exactlyOnce = Boolean.parseBoolean(props.getOrDefault(EXACTLY_ONCE,"false"));
         suppressTableExistenceException = Boolean.parseBoolean(props.getOrDefault("suppressTableExistenceException","false"));
+        this.source = props.getOrDefault(SOURCE, "cdc");
 
         String errorsToleranceString = props.getOrDefault("errors.tolerance", "none").trim();
         errorsTolerance = errorsToleranceString.equalsIgnoreCase("all");

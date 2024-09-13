@@ -93,7 +93,7 @@ A sample REST call you could use to create the connector (POST to `localhost:808
 {
   "name": "clickhouse-connect",
   "config": {
-    "connector.class": "com.clickhouse.kafka.connect.ClickHouseSinkConnector",
+    "connector.class": "com.clickhouse.kafka.connect.RawClickHouseSinkConnector",
     "tasks.max": "1",
     "database": "{{ClickHouse_database}}",
     "hostname": "{{ClickHouse_hostname}}",

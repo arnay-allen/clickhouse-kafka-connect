@@ -2,7 +2,7 @@
   "name": "%s",
   "config": {
     "name": "%s",
-    "connector.class": "com.clickhouse.kafka.connect.ClickHouseSinkConnector",
+    "connector.class": "com.clickhouse.kafka.connect.RawClickHouseSinkConnector",
     "tasks.max": "%d",
     "topics": "%s",
     "hostname": "%s",

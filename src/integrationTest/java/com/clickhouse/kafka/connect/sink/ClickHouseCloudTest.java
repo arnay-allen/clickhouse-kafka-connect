@@ -1,7 +1,7 @@
 package com.clickhouse.kafka.connect.sink;
 
 import com.clickhouse.client.ClickHouseProtocol;
-import com.clickhouse.kafka.connect.ClickHouseSinkConnector;
+import com.clickhouse.kafka.connect.RawClickHouseSinkConnector;
 import com.clickhouse.kafka.connect.sink.db.helper.ClickHouseHelperClient;
 import com.clickhouse.kafka.connect.sink.helper.ClickHouseTestHelpers;
 import com.clickhouse.kafka.connect.sink.helper.SchemalessTestData;
@@ -42,12 +42,12 @@ public class ClickHouseCloudTest {
 
     private Map<String, String> getTestProperties() {
         Map<String, String> props = new HashMap<>();
-        props.put(ClickHouseSinkConnector.HOSTNAME, String.valueOf(properties.getOrDefault("clickhouse.host", "clickhouse")));
-        props.put(ClickHouseSinkConnector.PORT, String.valueOf(properties.getOrDefault("clickhouse.port", ClickHouseProtocol.HTTP.getDefaultPort())));
-        props.put(ClickHouseSinkConnector.DATABASE, String.valueOf(properties.getOrDefault("clickhouse.database", "default")));
-        props.put(ClickHouseSinkConnector.USERNAME, String.valueOf(properties.getOrDefault("clickhouse.username", "default")));
-        props.put(ClickHouseSinkConnector.PASSWORD, String.valueOf(properties.getOrDefault("clickhouse.password", "")));
-        props.put(ClickHouseSinkConnector.SSL_ENABLED, "true");
+        props.put(RawClickHouseSinkConnector.HOSTNAME, String.valueOf(properties.getOrDefault("clickhouse.host", "clickhouse")));
+        props.put(RawClickHouseSinkConnector.PORT, String.valueOf(properties.getOrDefault("clickhouse.port", ClickHouseProtocol.HTTP.getDefaultPort())));
+        props.put(RawClickHouseSinkConnector.DATABASE, String.valueOf(properties.getOrDefault("clickhouse.database", "default")));
+        props.put(RawClickHouseSinkConnector.USERNAME, String.valueOf(properties.getOrDefault("clickhouse.username", "default")));
+        props.put(RawClickHouseSinkConnector.PASSWORD, String.valueOf(properties.getOrDefault("clickhouse.password", "")));
+        props.put(RawClickHouseSinkConnector.SSL_ENABLED, "true");
         return props;
     }
 

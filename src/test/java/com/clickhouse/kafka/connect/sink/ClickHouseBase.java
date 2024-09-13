@@ -7,7 +7,7 @@ import com.clickhouse.client.ClickHouseResponse;
 import com.clickhouse.client.ClickHouseResponseSummary;
 import com.clickhouse.client.config.ClickHouseClientOption;
 import com.clickhouse.data.ClickHouseRecord;
-import com.clickhouse.kafka.connect.ClickHouseSinkConnector;
+import com.clickhouse.kafka.connect.RawClickHouseSinkConnector;
 import com.clickhouse.kafka.connect.sink.db.helper.ClickHouseHelperClient;
 import com.clickhouse.kafka.connect.sink.helper.ClickHouseTestHelpers;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -93,7 +93,7 @@ public class ClickHouseBase {
 
         if (withDatabase) {
             createDatabase(ClickHouseBase.database, tmpChc);
-            props.put(ClickHouseSinkConnector.DATABASE, ClickHouseBase.database);
+            props.put(RawClickHouseSinkConnector.DATABASE, ClickHouseBase.database);
             tmpChc = new ClickHouseHelperClient.ClickHouseClientBuilder(hostname, port, csc.getProxyType(), csc.getProxyHost(), csc.getProxyPort())
                     .setDatabase(ClickHouseBase.database)
                     .setUsername(username)
@@ -210,23 +210,23 @@ public class ClickHouseBase {
     protected Map<String,String> createProps() {
         Map<String, String> props = new HashMap<>();
         String clientVersion = extractClientVersion();
-        props.put(ClickHouseSinkConnector.CLIENT_VERSION, clientVersion);
+        props.put(RawClickHouseSinkConnector.CLIENT_VERSION, clientVersion);
         if (isCloud) {
-            props.put(ClickHouseSinkConnector.HOSTNAME, System.getenv("CLICKHOUSE_CLOUD_HOST"));
-            props.put(ClickHouseSinkConnector.PORT, ClickHouseTestHelpers.HTTPS_PORT);
-            props.put(ClickHouseSinkConnector.DATABASE, ClickHouseTestHelpers.DATABASE_DEFAULT);
-            props.put(ClickHouseSinkConnector.USERNAME, ClickHouseTestHelpers.USERNAME_DEFAULT);
-            props.put(ClickHouseSinkConnector.PASSWORD, System.getenv("CLICKHOUSE_CLOUD_PASSWORD"));
-            props.put(ClickHouseSinkConnector.SSL_ENABLED, "true");
+            props.put(RawClickHouseSinkConnector.HOSTNAME, System.getenv("CLICKHOUSE_CLOUD_HOST"));
+            props.put(RawClickHouseSinkConnector.PORT, ClickHouseTestHelpers.HTTPS_PORT);
+            props.put(RawClickHouseSinkConnector.DATABASE, ClickHouseTestHelpers.DATABASE_DEFAULT);
+            props.put(RawClickHouseSinkConnector.USERNAME, ClickHouseTestHelpers.USERNAME_DEFAULT);
+            props.put(RawClickHouseSinkConnector.PASSWORD, System.getenv("CLICKHOUSE_CLOUD_PASSWORD"));
+            props.put(RawClickHouseSinkConnector.SSL_ENABLED, "true");
             props.put(String.valueOf(ClickHouseClientOption.CONNECTION_TIMEOUT), "60000");
             props.put("clickhouseSettings", "insert_quorum=3");
         } else {
-            props.put(ClickHouseSinkConnector.HOSTNAME, db.getHost());
-            props.put(ClickHouseSinkConnector.PORT, db.getFirstMappedPort().toString());
-            props.put(ClickHouseSinkConnector.DATABASE, ClickHouseTestHelpers.DATABASE_DEFAULT);
-            props.put(ClickHouseSinkConnector.USERNAME, db.getUsername());
-            props.put(ClickHouseSinkConnector.PASSWORD, db.getPassword());
-            props.put(ClickHouseSinkConnector.SSL_ENABLED, "false");
+            props.put(RawClickHouseSinkConnector.HOSTNAME, db.getHost());
+            props.put(RawClickHouseSinkConnector.PORT, db.getFirstMappedPort().toString());
+            props.put(RawClickHouseSinkConnector.DATABASE, ClickHouseTestHelpers.DATABASE_DEFAULT);
+            props.put(RawClickHouseSinkConnector.USERNAME, db.getUsername());
+            props.put(RawClickHouseSinkConnector.PASSWORD, db.getPassword());
+            props.put(RawClickHouseSinkConnector.SSL_ENABLED, "false");
         }
         return props;
     }
