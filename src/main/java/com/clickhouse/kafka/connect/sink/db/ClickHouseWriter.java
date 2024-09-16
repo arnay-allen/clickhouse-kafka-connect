@@ -327,41 +327,9 @@ public class ClickHouseWriter implements DBWriter {
                     }
                 } else if (value.getFieldType().equals(Schema.Type.STRING)) {
                     try {
-                        long seconds;
-                        long milliSeconds;
-                        long microSeconds;
-                        long nanoSeconds;
-
-                        if (!csc.getDateTimeFormats().isEmpty()) {
-                            Map<String, DateTimeFormatter> formats = csc.getDateTimeFormats();
-                            DateTimeFormatter formatter = formats.get(columnName);
-                            LOGGER.trace("Using custom date time format: {}", formatter);
-                            LocalDateTime localDateTime = LocalDateTime.from(formatter.parse((String) value.getObject()));
-                            seconds = localDateTime.toInstant(ZoneOffset.UTC).getEpochSecond();
-                            milliSeconds = localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli();
-                            microSeconds = TimeUnit.MICROSECONDS.convert(seconds, TimeUnit.SECONDS) + localDateTime.get(ChronoField.MICRO_OF_SECOND);
-                            nanoSeconds = TimeUnit.NANOSECONDS.convert(seconds, TimeUnit.SECONDS) + localDateTime.getNano();
-                        } else {
-                            ZonedDateTime zonedDateTime = ZonedDateTime.parse((String) value.getObject());
-                            seconds = zonedDateTime.toInstant().getEpochSecond();
-                            milliSeconds = zonedDateTime.toInstant().toEpochMilli();
-                            microSeconds = TimeUnit.MICROSECONDS.convert(seconds, TimeUnit.SECONDS) + zonedDateTime.get(ChronoField.MICRO_OF_SECOND);
-                            nanoSeconds = TimeUnit.NANOSECONDS.convert(seconds, TimeUnit.SECONDS) + zonedDateTime.getNano();
-                        }
-
-                        if (precision == 3) {
-                            LOGGER.trace("Writing epoch milliseconds: {}", milliSeconds);
-                            BinaryStreamUtils.writeInt64(stream, milliSeconds);
-                        } else if (precision == 6) {
-                            LOGGER.trace("Writing epoch microseconds: {}", microSeconds);
-                            BinaryStreamUtils.writeInt64(stream, microSeconds);
-                        } else if (precision == 9) {
-                            LOGGER.trace("Writing epoch nanoseconds: {}", nanoSeconds);
-                            BinaryStreamUtils.writeInt64(stream, nanoSeconds);
-                        } else {
-                            LOGGER.trace("Writing epoch seconds: {}", seconds);
-                            BinaryStreamUtils.writeInt64(stream, seconds);
-                        }
+                        Date date = new Date(Long.parseLong(value.getObject().toString()));
+                        int timeInDays = (int) TimeUnit.MILLISECONDS.toDays(date.getTime());
+                        BinaryStreamUtils.writeInt64(stream, timeInDays);
                     } catch (Exception e) {
                         LOGGER.error("Error parsing date time string: {}, exception: {}", value.getObject(), e.getMessage());
                         unsupported = true;
