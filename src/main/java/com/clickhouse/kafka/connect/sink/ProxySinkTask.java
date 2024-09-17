@@ -9,8 +9,8 @@ import com.clickhouse.kafka.connect.sink.processing.Processing;
 import com.clickhouse.kafka.connect.sink.state.StateProvider;
 import com.clickhouse.kafka.connect.sink.state.provider.InMemoryState;
 import com.clickhouse.kafka.connect.sink.state.provider.KeeperStateProvider;
-import com.clickhouse.kafka.connect.util.jmx.MBeanServerUtils;
-import com.clickhouse.kafka.connect.util.jmx.SinkTaskStatistics;
+//import com.clickhouse.kafka.connect.util.jmx.MBeanServerUtils;
+//import com.clickhouse.kafka.connect.util.jmx.SinkTaskStatistics;
 import com.clickhouse.kafka.connect.util.jmx.ExecutionTimer;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
@@ -35,7 +35,7 @@ public class ProxySinkTask {
     private ClickHouseSinkConfig clickHouseSinkConfig = null;
 
 
-    private final SinkTaskStatistics statistics;
+//    private final SinkTaskStatistics statistics;
     private int id = NEXT_ID.getAndAdd(1);
 
     public ProxySinkTask(final ClickHouseSinkConfig clickHouseSinkConfig, final ErrorReporter errorReporter) {
