@@ -63,7 +63,7 @@ public class ProxySinkTask {
             throw new RuntimeException("Connection to ClickHouse is not active.");
         processing = new Processing(stateProvider, dbWriter, errorReporter, clickHouseSinkConfig);
 
-        this.statistics = MBeanServerUtils.registerMBean(new SinkTaskStatistics(), getMBeanNAme());
+//        this.statistics = MBeanServerUtils.registerMBean(new SinkTaskStatistics(), getMBeanNAme());
     }
 
     private String getMBeanNAme() {
@@ -71,7 +71,7 @@ public class ProxySinkTask {
     }
 
     public void stop() {
-        MBeanServerUtils.unregisterMBean(getMBeanNAme());
+//        MBeanServerUtils.unregisterMBean(getMBeanNAme());
     }
 
     public void put(final Collection<SinkRecord> records) throws IOException, ExecutionException, InterruptedException {
@@ -81,7 +81,7 @@ public class ProxySinkTask {
         }
         // Group by topic & partition
         ExecutionTimer taskTime = ExecutionTimer.start();
-        statistics.receivedRecords(records.size());
+//        statistics.receivedRecords(records.size());
         LOGGER.trace(String.format("Got %d records from put API.", records.size()));
         ExecutionTimer processingTime = ExecutionTimer.start();
 
@@ -92,13 +92,13 @@ public class ProxySinkTask {
                         clickHouseSinkConfig.getDatabase(),
                         clickHouseSinkConfig.getSource()))
                 .collect(Collectors.groupingBy(Record::getTopicAndPartition));
-        statistics.recordProcessingTime(processingTime);
+//        statistics.recordProcessingTime(processingTime);
         // TODO - Multi process???
         for (String topicAndPartition : dataRecords.keySet()) {
             // Running on etch topic & partition
             List<Record> rec = dataRecords.get(topicAndPartition);
             processing.doLogic(rec);
         }
-        statistics.taskProcessingTime(taskTime);
+//        statistics.taskProcessingTime(taskTime);
     }
 }
