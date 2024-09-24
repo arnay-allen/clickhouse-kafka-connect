@@ -327,9 +327,7 @@ public class ClickHouseWriter implements DBWriter {
                     }
                 } else if (value.getFieldType().equals(Schema.Type.STRING)) {
                     try {
-                        Date date = new Date(Long.parseLong(value.getObject().toString()));
-                        int timeInDays = (int) TimeUnit.MILLISECONDS.toDays(date.getTime());
-                        BinaryStreamUtils.writeInt64(stream, timeInDays);
+                        BinaryStreamUtils.writeInt64(stream, Long.parseLong(value.getObject().toString()));
                     } catch (Exception e) {
                         LOGGER.error("Error parsing date time string: {}, exception: {}", value.getObject(), e.getMessage());
                         unsupported = true;
