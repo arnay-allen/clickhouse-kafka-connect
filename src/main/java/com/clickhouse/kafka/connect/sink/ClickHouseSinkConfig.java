@@ -48,6 +48,8 @@ public class ClickHouseSinkConfig {
     public static final String KEEPER_ON_CLUSTER = "keeperOnCluster";
     public static final String DATE_TIME_FORMAT = "dateTimeFormats";
     public static final String SOURCE = "source";
+    public static final String DB_TYPE = "dbType";
+    public static final String ID_FIELD = "idField";
 
     public static final int MILLI_IN_A_SEC = 1000;
     private static final String databaseDefault = "default";
@@ -94,6 +96,8 @@ public class ClickHouseSinkConfig {
     private final Map<String, DateTimeFormatter> dateTimeFormats;
     private final String clientVersion;
     private final String source;
+    private final String dbType;
+    private final String idField;
 
     public enum InsertFormats {
         NONE,
@@ -183,6 +187,9 @@ public class ClickHouseSinkConfig {
         exactlyOnce = Boolean.parseBoolean(props.getOrDefault(EXACTLY_ONCE,"false"));
         suppressTableExistenceException = Boolean.parseBoolean(props.getOrDefault("suppressTableExistenceException","false"));
         this.source = props.getOrDefault(SOURCE, "cdc");
+        this.dbType = props.getOrDefault(DB_TYPE, "mongo");
+        this.idField = props.getOrDefault(ID_FIELD, "");
+
 
         String errorsToleranceString = props.getOrDefault("errors.tolerance", "none").trim();
         errorsTolerance = errorsToleranceString.equalsIgnoreCase("all");

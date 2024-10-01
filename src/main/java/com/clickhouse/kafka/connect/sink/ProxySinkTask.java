@@ -90,7 +90,9 @@ public class ProxySinkTask {
                         clickHouseSinkConfig.isEnableDbTopicSplit(),
                         clickHouseSinkConfig.getDbTopicSplitChar(),
                         clickHouseSinkConfig.getDatabase(),
-                        clickHouseSinkConfig.getSource()))
+                        clickHouseSinkConfig.getSource(),
+                        clickHouseSinkConfig.getDbType(),
+                        clickHouseSinkConfig.getIdField()))
                 .collect(Collectors.groupingBy(Record::getTopicAndPartition));
 //        statistics.recordProcessingTime(processingTime);
         // TODO - Multi process???

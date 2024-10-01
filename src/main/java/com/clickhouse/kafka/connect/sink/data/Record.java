@@ -15,6 +15,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.DataException;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.junit.platform.commons.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,7 +84,7 @@ public class Record {
         return recordConvertor.convert(sinkRecord, splitDBTopic, dbTopicSeparatorChar, database);
     }
 
-    public static Record convert(SinkRecord sinkRecord, boolean splitDBTopic, String dbTopicSeparatorChar,String database, String source) {
+    public static Record convert(SinkRecord sinkRecord, boolean splitDBTopic, String dbTopicSeparatorChar,String database, String source, String dbType, String idField) {
         String topic = sinkRecord.topic();
         if (splitDBTopic) {
             String[] parts = topic.split(Pattern.quote(dbTopicSeparatorChar));
@@ -95,7 +96,7 @@ public class Record {
         int partition = sinkRecord.kafkaPartition().intValue();
         long offset = sinkRecord.kafkaOffset();
         List<Field> fields = new ArrayList<>();
-        Map<?,?> map = getMapFromSinkRecord(sinkRecord, source);
+        Map<?,?> map = getMapFromSinkRecord(sinkRecord, source, dbType, idField);
         Map<String, Data> data = new HashMap<>();
         int index = 0;
         map.forEach((key,val) -> {
@@ -105,13 +106,25 @@ public class Record {
         return new Record(SchemaType.SCHEMA, new OffsetContainer(topic, partition, offset), fields, data, database, sinkRecord);
     }
 
-    private static Map<?,?> getMapFromSinkRecord(SinkRecord sinkRecord, String source) {
+    private static Map<?,?> getMapFromSinkRecord(SinkRecord sinkRecord, String source, String dbType, String idField) {
         Map<String,Object> map = new HashMap<>();
         ObjectMapper mapper = new ObjectMapper();
         try {
             if ("cdc".equals(source)) {
                 JsonNode rootNode = mapper.readTree(sinkRecord.value().toString());
-                map.put("_id", rootNode.get("_id").asText());
+                if ("mongo".equals(dbType)) {
+                    map.put("_id", rootNode.get("_id").asText());
+                } else if ("mysql".equals(dbType)) {
+                    if (rootNode.has("id")) {
+                        map.put("id", rootNode.get("id").asText());
+                    } else if (!StringUtils.isBlank(idField) && rootNode.has(idField)) {
+                        map.put("id", rootNode.get(idField).asText());
+                    } else {
+                        map.put("id", UUID.randomUUID().toString());
+                    }
+                }
+
+
                 map.put("data", mapper.writeValueAsString(rootNode));
                 map.put("partition_key", System.currentTimeMillis());
             } else if ("pes".equals(source)) {
