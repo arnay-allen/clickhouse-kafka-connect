@@ -110,7 +110,6 @@ public class Record {
         Map<String,Object> map = new HashMap<>();
         ObjectMapper mapper = new ObjectMapper();
         try {
-            log.info("Processing record: {}", sinkRecord.value());
             if ("cdc".equals(source)) {
                 JsonNode rootNode = mapper.readTree(sinkRecord.value().toString());
                 if ("mongo".equals(dbType)) {
@@ -124,8 +123,6 @@ public class Record {
                         map.put("id", UUID.randomUUID().toString());
                     }
                 }
-
-
                 map.put("data", mapper.writeValueAsString(rootNode));
                 map.put("partition_key", System.currentTimeMillis());
             } else if ("pes".equals(source)) {
