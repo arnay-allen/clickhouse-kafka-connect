@@ -111,10 +111,12 @@ public class Record {
         ObjectMapper mapper = new ObjectMapper();
         try {
             if ("cdc".equals(source)) {
-                JsonNode rootNode = mapper.readTree(sinkRecord.value().toString());
+                JsonNode rootNode = null;
                 if ("mongo".equals(dbType)) {
+                    rootNode = mapper.readTree(sinkRecord.value().toString());
                     map.put("_id", rootNode.get("_id").asText());
                 } else if ("mysql".equals(dbType)) {
+                    rootNode = mapper.valueToTree(sinkRecord.value());
                     if (rootNode.has("id")) {
                         map.put("id", rootNode.get("id").asText());
                     } else if (!StringUtils.isBlank(idField) && rootNode.has(idField)) {
