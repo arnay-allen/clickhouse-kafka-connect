@@ -110,6 +110,7 @@ public class Record {
         Map<String,Object> map = new HashMap<>();
         ObjectMapper mapper = new ObjectMapper();
         try {
+            log.info("Processing record: {}", sinkRecord.value());
             if ("cdc".equals(source)) {
                 JsonNode rootNode = mapper.readTree(sinkRecord.value().toString());
                 if ("mongo".equals(dbType)) {
