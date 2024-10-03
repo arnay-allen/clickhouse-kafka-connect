@@ -119,7 +119,7 @@ public class Record {
                     rootNode = mapper.valueToTree(sinkRecord.value());
                     if (rootNode.has("id")) {
                         map.put("id", rootNode.get("id").asText());
-                    } else if (!StringUtils.isBlank(idField) && rootNode.has(idField)) {
+                    } else if (Objects.nonNull(idField) && !idField.isBlank() && rootNode.has(idField)) {
                         map.put("id", rootNode.get(idField).asText());
                     } else {
                         map.put("id", UUID.randomUUID().toString());
