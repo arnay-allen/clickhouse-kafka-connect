@@ -307,8 +307,8 @@ public class ClickHouseWriter implements DBWriter {
                     }
                 } else if (value.getFieldType().equals(Schema.Type.STRING)) {
                     try {
-                        ZonedDateTime zonedDateTime = ZonedDateTime.parse((String) value.getObject());
-                        BinaryStreamUtils.writeUnsignedInt32(stream, zonedDateTime.toInstant().getEpochSecond());
+                        String dateTimeString = value.getObject().toString();
+                        BinaryStreamUtils.writeUnsignedInt32(stream, Long.parseLong(dateTimeString.substring(0,10)));
                     } catch (Exception e) {
                         LOGGER.error("Error parsing date time string: {}", value.getObject());
                         unsupported = true;

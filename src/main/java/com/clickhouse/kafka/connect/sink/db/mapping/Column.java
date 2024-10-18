@@ -136,7 +136,9 @@ public class Column {
                 type = Type.DateTime;
                 break;
             default:
-                if (valueType.startsWith("DateTime64")) {
+                if (valueType.startsWith("DateTime(")) {
+                    type = Type.DateTime;
+                }else if (valueType.startsWith("DateTime64")) {
                     // Need to understand why DateTime64(3)
                     type = Type.DateTime64;
                 } else if (valueType.startsWith("Decimal")) {
