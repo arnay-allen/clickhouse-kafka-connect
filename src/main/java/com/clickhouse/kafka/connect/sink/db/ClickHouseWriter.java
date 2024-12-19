@@ -240,6 +240,9 @@ public class ClickHouseWriter implements DBWriter {
                                 if (colTypeName.equals("STRING") && dataTypeName.equals("BYTES"))
                                     continue;
 
+                                if (colTypeName.equals("UINT64") && dataTypeName.equals("STRING"))
+                                    continue;
+
                                 if (colTypeName.equals("TUPLE") && dataTypeName.equals("STRUCT"))
                                     continue;
 
