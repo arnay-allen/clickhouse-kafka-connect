@@ -546,7 +546,7 @@ public class ClickHouseWriter implements DBWriter {
                 BinaryStreamUtils.writeUnsignedInt32(stream, (Integer) value);
                 break;
             case UINT64:
-                BinaryStreamUtils.writeUnsignedInt64(stream, (Long) value);
+                BinaryStreamUtils.writeUnsignedInt64(stream, Long.parseLong(value.toString()));
                 break;
             case FLOAT32:
                 BinaryStreamUtils.writeFloat32(stream, (Float) value);
