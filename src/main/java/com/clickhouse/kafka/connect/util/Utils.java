@@ -140,7 +140,6 @@ public class Utils {
 
     public static void sendTODlq(ErrorReporter errorReporter, SinkRecord record, Exception exception) {
         if (errorReporter != null && record != null) {
-            LOGGER.error("Sending record to DLQ: {}", record);
             errorReporter.report(record, exception);
         }
     }
