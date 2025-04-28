@@ -10,9 +10,10 @@ import com.clickhouse.kafka.connect.sink.processing.Processing;
 import com.clickhouse.kafka.connect.sink.state.StateProvider;
 import com.clickhouse.kafka.connect.sink.state.provider.InMemoryState;
 import com.clickhouse.kafka.connect.sink.state.provider.KeeperStateProvider;
+//import com.clickhouse.kafka.connect.util.jmx.MBeanServerUtils;
+//import com.clickhouse.kafka.connect.util.jmx.SinkTaskStatistics;
 import com.clickhouse.kafka.connect.util.jmx.ExecutionTimer;
-import com.clickhouse.kafka.connect.util.jmx.MBeanServerUtils;
-import com.clickhouse.kafka.connect.util.jmx.SinkTaskStatistics;
+
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +37,7 @@ public class ProxySinkTask {
     private ClickHouseSinkConfig clickHouseSinkConfig = null;
 
 
-    private final SinkTaskStatistics statistics;
+//    private final SinkTaskStatistics statistics;
     private int id = NEXT_ID.getAndAdd(1);
 
     public ProxySinkTask(final ClickHouseSinkConfig clickHouseSinkConfig, final ErrorReporter errorReporter) {
@@ -64,7 +65,7 @@ public class ProxySinkTask {
             throw new RuntimeException("Connection to ClickHouse is not active.");
         processing = new Processing(stateProvider, dbWriter, errorReporter, clickHouseSinkConfig);
 
-        this.statistics = MBeanServerUtils.registerMBean(new SinkTaskStatistics(), getMBeanNAme());
+//        this.statistics = MBeanServerUtils.registerMBean(new SinkTaskStatistics(), getMBeanNAme());
     }
 
     private String getMBeanNAme() {
@@ -72,7 +73,7 @@ public class ProxySinkTask {
     }
 
     public void stop() {
-        MBeanServerUtils.unregisterMBean(getMBeanNAme());
+//        MBeanServerUtils.unregisterMBean(getMBeanNAme());
     }
 
     public void put(final Collection<SinkRecord> records) throws IOException, ExecutionException, InterruptedException {
@@ -82,7 +83,7 @@ public class ProxySinkTask {
         }
         // Group by topic & partition
         ExecutionTimer taskTime = ExecutionTimer.start();
-        statistics.receivedRecords(records.size());
+//        statistics.receivedRecords(records.size());
         LOGGER.trace(String.format("Got %d records from put API.", records.size()));
         ExecutionTimer processingTime = ExecutionTimer.start();
 
@@ -94,13 +95,14 @@ public class ProxySinkTask {
                 .collect(Collectors.groupingBy(!clickHouseSinkConfig.isExactlyOnce() && clickHouseSinkConfig.isIgnorePartitionsWhenBatching()
                         ? Record::getTopic : Record::getTopicAndPartition));
 
-        statistics.recordProcessingTime(processingTime);
+//        statistics.recordProcessingTime(processingTime);
+
         // TODO - Multi process???
         for (String topicAndPartition : dataRecords.keySet()) {
             // Running on etch topic & partition
             List<Record> rec = dataRecords.get(topicAndPartition);
             processing.doLogic(rec);
         }
-        statistics.taskProcessingTime(taskTime);
+//        statistics.taskProcessingTime(taskTime);
     }
 }

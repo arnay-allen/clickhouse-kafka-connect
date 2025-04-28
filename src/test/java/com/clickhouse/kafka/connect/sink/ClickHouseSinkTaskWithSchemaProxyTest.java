@@ -2,7 +2,7 @@ package com.clickhouse.kafka.connect.sink;
 
 import com.clickhouse.client.ClickHouseProtocol;
 import com.clickhouse.client.config.ClickHouseProxyType;
-import com.clickhouse.kafka.connect.ClickHouseSinkConnector;
+import com.clickhouse.kafka.connect.RawClickHouseSinkConnector;
 import com.clickhouse.kafka.connect.sink.db.helper.ClickHouseHelperClient;
 import com.clickhouse.kafka.connect.sink.helper.ClickHouseTestHelpers;
 import com.clickhouse.kafka.connect.sink.helper.SchemaTestData;
@@ -55,10 +55,10 @@ public class ClickHouseSinkTaskWithSchemaProxyTest extends ClickHouseBase {
 
     private Map<String, String> getTestProperties() {
         Map<String, String> props = new HashMap<>();
-        props.put(ClickHouseSinkConnector.DATABASE, "default");
-        props.put(ClickHouseSinkConnector.USERNAME, db.getUsername());
-        props.put(ClickHouseSinkConnector.PASSWORD, db.getPassword());
-        props.put(ClickHouseSinkConnector.SSL_ENABLED, "false");
+        props.put(RawClickHouseSinkConnector.DATABASE, "default");
+        props.put(RawClickHouseSinkConnector.USERNAME, db.getUsername());
+        props.put(RawClickHouseSinkConnector.PASSWORD, db.getPassword());
+        props.put(RawClickHouseSinkConnector.SSL_ENABLED, "false");
         props.put(ClickHouseSinkConfig.PROXY_TYPE, ClickHouseProxyType.HTTP.name());
         props.put(ClickHouseSinkConfig.PROXY_HOST, toxiproxy.getHost());
         props.put(ClickHouseSinkConfig.PROXY_PORT, String.valueOf(toxiproxy.getMappedPort(8666)));

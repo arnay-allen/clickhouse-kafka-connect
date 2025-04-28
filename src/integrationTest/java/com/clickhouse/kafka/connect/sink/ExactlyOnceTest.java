@@ -34,7 +34,7 @@ public class ExactlyOnceTest {
     private static ClickHouseAPI clickhouseAPI;
     private static ClickHouseHelperClient chcNoProxy;
     private static final Properties properties = System.getProperties();
-    private static final String SINK_CONNECTOR_NAME = "ClickHouseSinkConnector";
+    private static final String SINK_CONNECTOR_NAME = "RawClickHouseSinkConnector";
 
     @BeforeAll
     public static void setUp() {

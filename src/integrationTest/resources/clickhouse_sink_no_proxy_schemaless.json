@@ -4,7 +4,7 @@
     "value.converter.schemas.enable": "false",
     "value.converter": "org.apache.kafka.connect.json.JsonConverter",
     "name": "%s",
-    "connector.class": "com.clickhouse.kafka.connect.ClickHouseSinkConnector",
+    "connector.class": "com.clickhouse.kafka.connect.RawClickHouseSinkConnector",
     "tasks.max": "%d",
     "topics": "%s",
     "hostname": "%s",

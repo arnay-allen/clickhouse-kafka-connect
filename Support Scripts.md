@@ -367,7 +367,7 @@ Create "Basic" Connector: `POST localhost:8083/connectors`
 {
 	"name": "clickhouse-connect",
 	"config": {
-		"connector.class": "com.clickhouse.kafka.connect.ClickHouseSinkConnector",
+		"connector.class": "com.clickhouse.kafka.connect.RawClickHouseSinkConnector",
 		"tasks.max": "1",
 		"database": "{{ClickHouse_database}}",
 		"hostname": "{{ClickHouse_hostname}}",
@@ -395,7 +395,7 @@ Create "Avro" Connector: `POST localhost:8083/connectors`
 {
 	"name": "clickhouse-connect",
 	"config": {
-		"connector.class": "com.clickhouse.kafka.connect.ClickHouseSinkConnector",
+		"connector.class": "com.clickhouse.kafka.connect.RawClickHouseSinkConnector",
 		"tasks.max": "1",
 		"database": "{{ClickHouse_database}}",
 		"hostname": "{{ClickHouse_hostname}}",
@@ -425,7 +425,7 @@ Create "Protobuf" Connector: `POST localhost:8083/connectors`
 {
 	"name": "clickhouse-connect",
 	"config": {
-		"connector.class": "com.clickhouse.kafka.connect.ClickHouseSinkConnector",
+		"connector.class": "com.clickhouse.kafka.connect.RawClickHouseSinkConnector",
 		"tasks.max": "1",
 		"database": "{{ClickHouse_database}}",
 		"hostname": "{{ClickHouse_hostname}}",

@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.clickhouse.kafka.connect.ClickHouseSinkConnector.CLIENT_VERSION;
+import static com.clickhouse.kafka.connect.RawClickHouseSinkConnector.CLIENT_VERSION;
 
 @Getter
 public class ClickHouseSinkConfig {
@@ -47,6 +47,9 @@ public class ClickHouseSinkConfig {
     public static final String DB_TOPIC_SPLIT_CHAR = "dbTopicSplitChar";
     public static final String KEEPER_ON_CLUSTER = "keeperOnCluster";
     public static final String DATE_TIME_FORMAT = "dateTimeFormats";
+    public static final String SOURCE = "source";
+    public static final String DB_TYPE = "dbType";
+    public static final String ID_FIELD = "idField";
     public static final String TOLERATE_STATE_MISMATCH = "tolerateStateMismatch";
     public static final String BYPASS_SCHEMA_VALIDATION = "bypassSchemaValidation";
     public static final String BYPASS_FIELD_CLEANUP = "bypassFieldCleanup";
@@ -90,6 +93,9 @@ public class ClickHouseSinkConfig {
     private final String keeperOnCluster;
     private final Map<String, DateTimeFormatter> dateTimeFormats;
     private final String clientVersion;
+    private final String source;
+    private final String dbType;
+    private final String idField;
     private final boolean tolerateStateMismatch;
     private final boolean bypassSchemaValidation;
     private final boolean bypassFieldCleanup;
@@ -182,6 +188,10 @@ public class ClickHouseSinkConfig {
         tableRefreshInterval = Long.parseLong(props.getOrDefault(TABLE_REFRESH_INTERVAL, tableRefreshIntervalDefault.toString())) * MILLI_IN_A_SEC; // multiple in 1000 milli
         exactlyOnce = Boolean.parseBoolean(props.getOrDefault(EXACTLY_ONCE,"false"));
         suppressTableExistenceException = Boolean.parseBoolean(props.getOrDefault("suppressTableExistenceException","false"));
+        this.source = props.getOrDefault(SOURCE, "cdc");
+        this.dbType = props.getOrDefault(DB_TYPE, "mongo");
+        this.idField = props.getOrDefault(ID_FIELD, "");
+
 
         String errorsToleranceString = props.getOrDefault("errors.tolerance", "none").trim();
         errorsTolerance = errorsToleranceString.equalsIgnoreCase("all");

@@ -1,5 +1,11 @@
 package com.clickhouse.kafka.connect.sink;
 
+import com.clickhouse.client.*;
+import com.clickhouse.kafka.connect.RawClickHouseSinkConnector;
+import com.clickhouse.kafka.connect.sink.data.Record;
+import com.clickhouse.kafka.connect.sink.db.ClickHouseWriter;
+import com.clickhouse.kafka.connect.sink.db.DBWriter;
+import com.clickhouse.kafka.connect.sink.db.InMemoryDBWriter;
 import com.clickhouse.kafka.connect.sink.dlq.ErrorReporter;
 import com.clickhouse.kafka.connect.util.Utils;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;

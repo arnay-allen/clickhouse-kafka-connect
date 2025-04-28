@@ -1,5 +1,8 @@
 package com.clickhouse.kafka.connect.sink;
 
+
+import com.clickhouse.kafka.connect.RawClickHouseSinkConnector;
+
 import com.clickhouse.kafka.connect.sink.db.helper.ClickHouseHelperClient;
 import com.clickhouse.kafka.connect.sink.helper.ClickHouseTestHelpers;
 import com.clickhouse.kafka.connect.sink.helper.SchemaTestData;

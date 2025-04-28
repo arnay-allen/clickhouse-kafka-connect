@@ -30,6 +30,22 @@ import com.clickhouse.kafka.connect.util.QueryIdentifier;
 import com.clickhouse.kafka.connect.util.Utils;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoField;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+
+
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -249,6 +265,9 @@ public class ClickHouseWriter implements DBWriter {
                                 if (colTypeName.equals("STRING") && dataTypeName.equals("BYTES"))
                                     continue;
 
+                                if (colTypeName.equals("UINT64") && dataTypeName.equals("STRING"))
+                                    continue;
+
                                 if (colTypeName.equals("TUPLE") && dataTypeName.equals("STRUCT"))
                                     continue;
 
@@ -290,9 +309,14 @@ public class ClickHouseWriter implements DBWriter {
                     } else {
                         BinaryStreamUtils.writeUnsignedInt16(stream, (Integer) value.getObject());
                     }
+                } else if (value.getFieldType().equals(Schema.Type.STRING)) {
+                    Date date = new Date(Long.parseLong(value.getObject().toString()));
+                    int timeInDays = (int) TimeUnit.MILLISECONDS.toDays(date.getTime());
+                    BinaryStreamUtils.writeUnsignedInt16(stream, timeInDays);
                 } else {
                     unsupported = true;
                 }
+
                 break;
             case Date32:
                 if (value.getFieldType().equals(Schema.Type.INT32)) {
@@ -317,8 +341,8 @@ public class ClickHouseWriter implements DBWriter {
                     }
                 } else if (value.getFieldType().equals(Schema.Type.STRING)) {
                     try {
-                        ZonedDateTime zonedDateTime = ZonedDateTime.parse((String) value.getObject());
-                        BinaryStreamUtils.writeUnsignedInt32(stream, zonedDateTime.toInstant().getEpochSecond());
+                        String dateTimeString = value.getObject().toString();
+                        BinaryStreamUtils.writeUnsignedInt32(stream, Long.parseLong(dateTimeString.substring(0,10)));
                     } catch (Exception e) {
                         LOGGER.error("Error parsing date time string: {}", value.getObject());
                         unsupported = true;
@@ -337,41 +361,7 @@ public class ClickHouseWriter implements DBWriter {
                     }
                 } else if (value.getFieldType().equals(Schema.Type.STRING)) {
                     try {
-                        long seconds;
-                        long milliSeconds;
-                        long microSeconds;
-                        long nanoSeconds;
-
-                        if (!csc.getDateTimeFormats().isEmpty()) {
-                            Map<String, DateTimeFormatter> formats = csc.getDateTimeFormats();
-                            DateTimeFormatter formatter = formats.get(columnName);
-                            LOGGER.trace("Using custom date time format: {}", formatter);
-                            LocalDateTime localDateTime = LocalDateTime.from(formatter.parse((String) value.getObject()));
-                            seconds = localDateTime.toInstant(ZoneOffset.UTC).getEpochSecond();
-                            milliSeconds = localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli();
-                            microSeconds = TimeUnit.MICROSECONDS.convert(seconds, TimeUnit.SECONDS) + localDateTime.get(ChronoField.MICRO_OF_SECOND);
-                            nanoSeconds = TimeUnit.NANOSECONDS.convert(seconds, TimeUnit.SECONDS) + localDateTime.getNano();
-                        } else {
-                            ZonedDateTime zonedDateTime = ZonedDateTime.parse((String) value.getObject());
-                            seconds = zonedDateTime.toInstant().getEpochSecond();
-                            milliSeconds = zonedDateTime.toInstant().toEpochMilli();
-                            microSeconds = TimeUnit.MICROSECONDS.convert(seconds, TimeUnit.SECONDS) + zonedDateTime.get(ChronoField.MICRO_OF_SECOND);
-                            nanoSeconds = TimeUnit.NANOSECONDS.convert(seconds, TimeUnit.SECONDS) + zonedDateTime.getNano();
-                        }
-
-                        if (precision == 3) {
-                            LOGGER.trace("Writing epoch milliseconds: {}", milliSeconds);
-                            BinaryStreamUtils.writeInt64(stream, milliSeconds);
-                        } else if (precision == 6) {
-                            LOGGER.trace("Writing epoch microseconds: {}", microSeconds);
-                            BinaryStreamUtils.writeInt64(stream, microSeconds);
-                        } else if (precision == 9) {
-                            LOGGER.trace("Writing epoch nanoseconds: {}", nanoSeconds);
-                            BinaryStreamUtils.writeInt64(stream, nanoSeconds);
-                        } else {
-                            LOGGER.trace("Writing epoch seconds: {}", seconds);
-                            BinaryStreamUtils.writeInt64(stream, seconds);
-                        }
+                        BinaryStreamUtils.writeInt64(stream, Long.parseLong(value.getObject().toString()));
                     } catch (Exception e) {
                         LOGGER.error("Error parsing date time string: {}, exception: {}", value.getObject(), e.getMessage());
                         unsupported = true;
@@ -591,7 +581,7 @@ public class ClickHouseWriter implements DBWriter {
                 BinaryStreamUtils.writeUnsignedInt32(stream, (Integer) value);
                 break;
             case UINT64:
-                BinaryStreamUtils.writeUnsignedInt64(stream, (Long) value);
+                BinaryStreamUtils.writeUnsignedInt64(stream, Long.parseLong(value.toString()));
                 break;
             case FLOAT32:
                 BinaryStreamUtils.writeFloat32(stream, (Float) value);
