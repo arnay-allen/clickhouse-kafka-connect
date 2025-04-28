@@ -7,7 +7,10 @@ import lombok.experimental.Accessors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,6 +33,10 @@ public class Table {
     @Accessors(fluent = true)
     private boolean hasDefaults;
 
+    @Setter
+    @Getter
+    private int numColumns = 0;
+
     public Table(String database, String name) {
         this.database = database;
         this.name = name;
@@ -40,6 +47,14 @@ public class Table {
         this.allColumnsMap = new HashMap<>();
     }
 
+    public Table(String database, String name, int numColumns) {
+        this(database, name);
+        this.numColumns = numColumns;
+    }
+
+    public String getCleanName() {
+        return name;
+    }
     public String getName() {
         return Utils.escapeName(name);
     }

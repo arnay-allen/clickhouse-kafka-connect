@@ -1,5 +1,6 @@
 package com.clickhouse.kafka.connect.sink;
 
+import com.clickhouse.client.config.ClickHouseClientOption;
 import com.clickhouse.kafka.connect.sink.data.Record;
 import com.clickhouse.kafka.connect.sink.db.ClickHouseWriter;
 import com.clickhouse.kafka.connect.sink.db.DBWriter;
@@ -12,6 +13,7 @@ import com.clickhouse.kafka.connect.sink.state.provider.KeeperStateProvider;
 //import com.clickhouse.kafka.connect.util.jmx.MBeanServerUtils;
 //import com.clickhouse.kafka.connect.util.jmx.SinkTaskStatistics;
 import com.clickhouse.kafka.connect.util.jmx.ExecutionTimer;
+
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,10 +22,10 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import java.util.Timer;
 
 public class ProxySinkTask {
 
@@ -67,7 +69,7 @@ public class ProxySinkTask {
     }
 
     private String getMBeanNAme() {
-        return "com.clickhouse:type=ClickHouseKafkaConnector,name=SinkTask" + id;
+        return String.format("com.clickhouse:type=ClickHouseKafkaConnector,name=SinkTask%d,version=%s", id, ClickHouseClientOption.class.getPackage().getImplementationVersion());
     }
 
     public void stop() {
@@ -89,12 +91,12 @@ public class ProxySinkTask {
                 .map(v -> Record.convert(v,
                         clickHouseSinkConfig.isEnableDbTopicSplit(),
                         clickHouseSinkConfig.getDbTopicSplitChar(),
-                        clickHouseSinkConfig.getDatabase(),
-                        clickHouseSinkConfig.getSource(),
-                        clickHouseSinkConfig.getDbType(),
-                        clickHouseSinkConfig.getIdField()))
-                .collect(Collectors.groupingBy(Record::getTopicAndPartition));
+                        clickHouseSinkConfig.getDatabase() ))
+                .collect(Collectors.groupingBy(!clickHouseSinkConfig.isExactlyOnce() && clickHouseSinkConfig.isIgnorePartitionsWhenBatching()
+                        ? Record::getTopic : Record::getTopicAndPartition));
+
 //        statistics.recordProcessingTime(processingTime);
+
         // TODO - Multi process???
         for (String topicAndPartition : dataRecords.keySet()) {
             // Running on etch topic & partition

@@ -2,8 +2,8 @@ package com.clickhouse.kafka.connect.sink.data;
 
 import com.clickhouse.kafka.connect.sink.data.convert.EmptyRecordConvertor;
 import com.clickhouse.kafka.connect.sink.data.convert.RecordConvertor;
-import com.clickhouse.kafka.connect.sink.data.convert.SchemalessRecordConvertor;
 import com.clickhouse.kafka.connect.sink.data.convert.SchemaRecordConvertor;
+import com.clickhouse.kafka.connect.sink.data.convert.SchemalessRecordConvertor;
 import com.clickhouse.kafka.connect.sink.data.convert.StringRecordConvertor;
 import com.clickhouse.kafka.connect.sink.kafka.OffsetContainer;
 import com.fasterxml.jackson.core.JsonProcessingException;

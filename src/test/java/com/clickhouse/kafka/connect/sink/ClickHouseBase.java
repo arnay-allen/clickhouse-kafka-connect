@@ -10,7 +10,6 @@ import com.clickhouse.data.ClickHouseRecord;
 import com.clickhouse.kafka.connect.RawClickHouseSinkConnector;
 import com.clickhouse.kafka.connect.sink.db.helper.ClickHouseHelperClient;
 import com.clickhouse.kafka.connect.sink.helper.ClickHouseTestHelpers;
-import org.apache.kafka.connect.sink.SinkRecord;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.slf4j.Logger;
@@ -18,7 +17,6 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.clickhouse.ClickHouseContainer;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,7 +35,7 @@ public class ClickHouseBase {
             initialPing();
             return;
         }
-        db = new ClickHouseContainer(ClickHouseTestHelpers.CLICKHOUSE_DOCKER_IMAGE);
+        db = new ClickHouseContainer(ClickHouseTestHelpers.CLICKHOUSE_DOCKER_IMAGE).withPassword("test_password").withEnv("CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT", "1");
         db.start();
     }
 
@@ -81,7 +79,8 @@ public class ClickHouseBase {
         String password = csc.getPassword();
         boolean sslEnabled = csc.isSslEnabled();
         int timeout = csc.getTimeout();
-
+        String clientVersion = csc.getClientVersion();
+        boolean useClientV2 = clientVersion.equals("V1") ? false : true;
         ClickHouseHelperClient tmpChc = new ClickHouseHelperClient.ClickHouseClientBuilder(hostname, port, csc.getProxyType(), csc.getProxyHost(), csc.getProxyPort())
                 .setDatabase(database)
                 .setUsername(username)
@@ -89,6 +88,7 @@ public class ClickHouseBase {
                 .sslEnable(sslEnabled)
                 .setTimeout(timeout)
                 .setRetry(csc.getRetry())
+                .useClientV2(useClientV2)
                 .build();
 
         if (withDatabase) {
@@ -101,6 +101,7 @@ public class ClickHouseBase {
                     .sslEnable(sslEnabled)
                     .setTimeout(timeout)
                     .setRetry(csc.getRetry())
+                    .useClientV2(useClientV2)
                     .build();
             }
 

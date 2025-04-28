@@ -1,6 +1,6 @@
 package com.clickhouse.kafka.connect.sink;
 
-import com.clickhouse.client.*;
+import com.clickhouse.client.ClickHouseProtocol;
 import com.clickhouse.client.config.ClickHouseProxyType;
 import com.clickhouse.kafka.connect.RawClickHouseSinkConnector;
 import com.clickhouse.kafka.connect.sink.db.helper.ClickHouseHelperClient;
@@ -9,13 +9,16 @@ import com.clickhouse.kafka.connect.sink.helper.SchemalessTestData;
 import eu.rekawek.toxiproxy.Proxy;
 import eu.rekawek.toxiproxy.ToxiproxyClient;
 import org.apache.kafka.connect.sink.SinkRecord;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.testcontainers.clickhouse.ClickHouseContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.ToxiproxyContainer;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -26,7 +29,11 @@ public class ClickHouseSinkTaskSchemalessProxyTest extends ClickHouseBase {
     public static void setup() throws IOException {
         Network network = Network.newNetwork();
         // Note: we are using a different version of ClickHouse for the proxy - https://github.com/ClickHouse/ClickHouse/issues/58828
-        db = new ClickHouseContainer(ClickHouseTestHelpers.CLICKHOUSE_FOR_PROXY_DOCKER_IMAGE).withNetwork(network).withNetworkAliases("clickhouse");
+        db = new ClickHouseContainer(ClickHouseTestHelpers.CLICKHOUSE_FOR_PROXY_DOCKER_IMAGE)
+                .withNetwork(network)
+                .withNetworkAliases("clickhouse")
+                .withPassword("test_password")
+                .withEnv("CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT", "1");
         db.start();
 
         toxiproxy = new ToxiproxyContainer("ghcr.io/shopify/toxiproxy:2.7.0").withNetwork(network).withNetworkAliases("toxiproxy");

@@ -1,3 +1,44 @@
+# 1.3.1
+* Ensure resources are auto-closed in exactlyOnce
+
+# 1.3.0
+* Added additional debug logging around KeeperMap and exactlyOnce
+
+# 1.2.9
+* Add `ignorePartitionsWhenBatching` flag to adjust batching when not using exactlyOnce
+* Add version information to MBean
+
+# 1.2.8
+* Reduce archive size by removing unnecessary dependencies from the jar
+* Fix NPE on V1 client when Clickhouse has table with Array(Nested...) field
+
+# 1.2.7
+* Bump clickhouse-java to 0.8.0
+* Fix for handling of nullable fields in tuples ClickHouse data type
+
+# 1.2.6
+* Detect if table schema has changed and refresh the schema
+* Allow bypassing field cleanup
+
+# 1.2.5
+* Remove redis state provide since we are using KeeperMap for state storage
+* Remove unused avro property from `build.gradle.kts`
+* Trim schemaless data to only pass the fields that are in the table
+* Allow bypassing the schema validation
+
+# 1.2.4
+* Adjusting underlying client version to 0.7.0
+* Bugfix for UINT handling
+
+# 1.2.3
+* Tweaking schema validation to allow for UINT
+
+# 1.2.2
+* Adding a new property `tolerateStateMismatch` to allow for the connector to continue processing even if the state stored in ClickHouse does not match the current offset in Kafka
+
+# 1.2.1
+* Adding some additional logging details to help debug issues
+
 # 1.2.0
 * Adding a KeyToValue transformation to allow for key to be stored in a separate column in ClickHouse
 

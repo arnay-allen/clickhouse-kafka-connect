@@ -1,12 +1,8 @@
 package com.clickhouse.kafka.connect.sink;
 
-import com.clickhouse.client.ClickHouseClient;
-import com.clickhouse.client.ClickHouseException;
-import com.clickhouse.client.ClickHouseProtocol;
-import com.clickhouse.client.ClickHouseResponse;
-import com.clickhouse.client.ClickHouseResponseSummary;
 import com.clickhouse.client.api.query.Records;
 import com.clickhouse.kafka.connect.RawClickHouseSinkConnector;
+
 import com.clickhouse.kafka.connect.sink.db.helper.ClickHouseHelperClient;
 import com.clickhouse.kafka.connect.sink.dlq.InMemoryDLQ;
 import com.clickhouse.kafka.connect.sink.helper.ClickHouseTestHelpers;
@@ -14,10 +10,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.sink.SinkRecord;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.clickhouse.ClickHouseContainer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ClickHouseSinkTaskStringTest extends ClickHouseBase {
     private int countRowsWithEmojis(ClickHouseHelperClient chc, String topic) {
-        String queryCount = "select count(*) from " + topic + " where str LIKE '%\uD83D\uDE00%'";
+        String queryCount = "select count(*) from " + topic + " where str LIKE '%\uD83D\uDE00%' SETTINGS select_sequential_consistency = 1";
         try {
             Records records = chc.getClient().queryRecords(queryCount).get();
             String value = records.iterator().next().getString(1);
@@ -44,7 +37,7 @@ public class ClickHouseSinkTaskStringTest extends ClickHouseBase {
         }
     }
     private int countRows(ClickHouseHelperClient chc, String topic) {
-        String queryCount = String.format("select count(*) from `%s`", topic);
+        String queryCount = String.format("select count(*) from `%s` SETTINGS select_sequential_consistency = 1", topic);
         try {
             Records records = chc.getClient().queryRecords(queryCount).get();
             String value = records.iterator().next().getString(1);

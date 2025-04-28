@@ -5,7 +5,6 @@ import com.clickhouse.kafka.connect.sink.db.mapping.Table;
 import com.clickhouse.kafka.connect.sink.helper.ClickHouseTestHelpers;
 import com.clickhouse.kafka.connect.sink.junit.extension.FromVersionConditionExtension;
 import com.clickhouse.kafka.connect.sink.junit.extension.SinceClickHouseVersion;
-import com.clickhouse.kafka.connect.util.Utils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,9 +12,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @ExtendWith(FromVersionConditionExtension.class)
 public class ClickHouseHelperClientTest extends ClickHouseBase {
@@ -40,7 +39,8 @@ public class ClickHouseHelperClientTest extends ClickHouseBase {
         ClickHouseTestHelpers.createTable(chc, topic,
                 "CREATE TABLE %s ( `num` String ) Engine = MergeTree ORDER BY num");
         try {
-            List<String> tableNames = chc.showTables(chc.getDatabase());
+            List<Table> table = chc.showTables(chc.getDatabase());
+            List<String> tableNames = table.stream().map(item -> item.getCleanName()).collect(Collectors.toList());
             Assertions.assertTrue(tableNames.contains(topic));
         } finally {
             ClickHouseTestHelpers.dropTable(chc, topic);
@@ -58,6 +58,22 @@ public class ClickHouseHelperClientTest extends ClickHouseBase {
         try {
             Table table = chc.describeTable(chc.getDatabase(), topic);
             Assertions.assertEquals(3, table.getRootColumnsList().size());
+        } finally {
+            ClickHouseTestHelpers.dropTable(chc, topic);
+        }
+    }
+
+    @Test
+    public void ignoreArrayWithNestedTable() {
+        String topic = createTopicName("nested_table_test");
+        ClickHouseTestHelpers.createTable(chc, topic,
+                "CREATE TABLE %s ( `num` String, " +
+                        "`nested` Array(Nested (innerInt Int32, innerString String))) " +
+                        "Engine = MergeTree ORDER BY num");
+
+        try {
+            Table table = chc.describeTable(chc.getDatabase(), topic);
+            Assertions.assertNull(table);
         } finally {
             ClickHouseTestHelpers.dropTable(chc, topic);
         }

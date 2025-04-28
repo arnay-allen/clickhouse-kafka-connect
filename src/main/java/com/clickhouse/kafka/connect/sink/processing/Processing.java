@@ -1,7 +1,6 @@
 package com.clickhouse.kafka.connect.sink.processing;
 
 import com.clickhouse.kafka.connect.sink.ClickHouseSinkConfig;
-import com.clickhouse.kafka.connect.sink.ClickHouseSinkTask;
 import com.clickhouse.kafka.connect.sink.data.Record;
 import com.clickhouse.kafka.connect.sink.db.DBWriter;
 import com.clickhouse.kafka.connect.sink.dlq.DuplicateException;
@@ -13,16 +12,12 @@ import com.clickhouse.kafka.connect.sink.state.StateProvider;
 import com.clickhouse.kafka.connect.sink.state.StateRecord;
 import com.clickhouse.kafka.connect.util.QueryIdentifier;
 import com.clickhouse.kafka.connect.util.Utils;
-import org.apache.kafka.connect.sink.SinkRecord;
-import org.apache.kafka.connect.sink.SinkTaskContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class Processing {
@@ -33,12 +28,6 @@ public class Processing {
 
 
     private ErrorReporter errorReporter = null;
-
-    public Processing(StateProvider stateProvider, DBWriter dbWriter) {
-        this.stateProvider = stateProvider;
-        this.dbWriter = dbWriter;
-        this.errorReporter = null;
-    }
 
     public Processing(StateProvider stateProvider, DBWriter dbWriter, ErrorReporter errorReporter, ClickHouseSinkConfig clickHouseSinkConfig) {
         this.stateProvider = stateProvider;
@@ -54,7 +43,7 @@ public class Processing {
      */
     private void doInsert(List<Record> records, RangeContainer rangeContainer) {
         if (records == null || records.isEmpty()) {
-            LOGGER.debug("doInsert - No records to insert.");
+            LOGGER.trace("doInsert - No records to insert.");
             return;
         }
         QueryIdentifier queryId = new QueryIdentifier(records.get(0).getRecordOffsetContainer().getTopic(), records.get(0).getRecordOffsetContainer().getPartition(),
@@ -65,6 +54,21 @@ public class Processing {
             LOGGER.debug("doInsert - Records: [{}] - {}", records.size(), queryId);
             dbWriter.doInsert(records, queryId, errorReporter);
             
+        } catch (Exception e) {
+            throw new RuntimeException(queryId.toString(), e);//This way the queryId will propagate
+        }
+    }
+
+    private void doInsert(List<Record> records) {
+        if (records == null || records.isEmpty()) {
+            LOGGER.trace("doInsert - No records to insert.");
+            return;
+        }
+        QueryIdentifier queryId = new QueryIdentifier(records.get(0).getRecordOffsetContainer().getTopic(), UUID.randomUUID().toString());
+
+        try {
+            LOGGER.info("doInsert - Records: [{}] - {}", records.size(), queryId);
+            dbWriter.doInsert(records, queryId, errorReporter);
         } catch (Exception e) {
             throw new RuntimeException(queryId.toString(), e);//This way the queryId will propagate
         }
@@ -101,7 +105,7 @@ public class Processing {
     }
 
 
-    public void doLogic(List<Record> records) throws IOException, ExecutionException, InterruptedException {
+    public void doLogic(List<Record> records) {
         List<Record> trimmedRecords;
         Record record = records.get(0);
 
@@ -110,6 +114,12 @@ public class Processing {
 
         if (this.clickHouseSinkConfig != null && clickHouseSinkConfig.isEnableDbTopicSplit()) {
             topic = database + clickHouseSinkConfig.getDbTopicSplitChar() + topic;
+        }
+
+        if (!clickHouseSinkConfig.isExactlyOnce() && clickHouseSinkConfig.isIgnorePartitionsWhenBatching()) {
+            LOGGER.debug("doLogic - Topic: [{}], Records: [{}]", topic, records.size());
+            doInsert(records);
+            return;
         }
 
         int partition = record.getRecordOffsetContainer().getPartition();
@@ -178,9 +188,9 @@ public class Processing {
                         doInsert(rightRecords, rightRangeContainer);
                         stateProvider.setStateRecord(new StateRecord(topic, partition, rightRangeContainer.getMaxOffset(), rightRangeContainer.getMinOffset(), State.AFTER_PROCESSING));
                         break;
-                    case ERROR:
-                        throw new RuntimeException(String.format("State MISMATCH given [%s] records for topic: [%s], partition: [%s], minOffset: [%s], maxOffset: [%s]",
-                                records.size(), topic, partition, rangeContainer.getMinOffset(), rangeContainer.getMaxOffset()));
+                    default: //case ERROR:
+                        throw new RuntimeException(String.format("ERROR State given [%s] records for topic: [%s], partition: [%s], minOffset: [%s], maxOffset: [%s], expectedMinOffset: [%s], expectedMaxOffset: [%s]",
+                                records.size(), topic, partition, rangeContainer.getMinOffset(), rangeContainer.getMaxOffset(), stateRecord.getMinOffset(), stateRecord.getMaxOffset()));
                 }
                 break;
             case AFTER_PROCESSING:
@@ -212,9 +222,18 @@ public class Processing {
                         doInsert(rightRecords, rightRangeContainer);
                         stateProvider.setStateRecord(new StateRecord(topic, partition, rightRangeContainer.getMaxOffset(), rightRangeContainer.getMinOffset(), State.AFTER_PROCESSING));
                         break;
-                    case ERROR:
-                        throw new RuntimeException(String.format("State MISMATCH given [%s] records for topic: [%s], partition: [%s], minOffset: [%s], maxOffset: [%s]",
-                                records.size(), topic, partition, rangeContainer.getMinOffset(), rangeContainer.getMaxOffset()));
+                    case PREVIOUS:
+                        if (clickHouseSinkConfig.isTolerateStateMismatch()) {
+                            LOGGER.warn("State MISMATCH as batch already processed - skipping [{}] records for topic: [{}], partition: [{}], minOffset: [{}], maxOffset: [{}], storedMinOffset: [{}], storedMaxOffset: [{}]",
+                                    records.size(), topic, partition, rangeContainer.getMinOffset(), rangeContainer.getMaxOffset(), stateRecord.getMinOffset(), stateRecord.getMaxOffset());
+                        } else {
+                            throw new RuntimeException(String.format("State MISMATCH as batch already processed - skipping [%s] records for topic: [%s], partition: [%s], minOffset: [%s], maxOffset: [%s], storedMinOffset: [%s], storedMaxOffset: [%s]",
+                                    records.size(), topic, partition, rangeContainer.getMinOffset(), rangeContainer.getMaxOffset(), stateRecord.getMinOffset(), stateRecord.getMaxOffset()));
+                        }
+                        break;
+                    default: //case ERROR:
+                        throw new RuntimeException(String.format("ERROR State given [%s] records for topic: [%s], partition: [%s], minOffset: [%s], maxOffset: [%s], expectedMinOffset: [%s], expectedMaxOffset: [%s]",
+                                records.size(), topic, partition, rangeContainer.getMinOffset(), rangeContainer.getMaxOffset(), stateRecord.getMinOffset(), stateRecord.getMaxOffset()));
                 }
         }
     }

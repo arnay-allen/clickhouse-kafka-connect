@@ -7,29 +7,18 @@ import com.clickhouse.kafka.connect.sink.db.ClickHouseWriter;
 import com.clickhouse.kafka.connect.sink.db.DBWriter;
 import com.clickhouse.kafka.connect.sink.db.InMemoryDBWriter;
 import com.clickhouse.kafka.connect.sink.dlq.ErrorReporter;
-import com.clickhouse.kafka.connect.sink.kafka.RangeContainer;
-import com.clickhouse.kafka.connect.sink.processing.Processing;
-import com.clickhouse.kafka.connect.sink.state.State;
-import com.clickhouse.kafka.connect.sink.state.StateProvider;
-import com.clickhouse.kafka.connect.sink.state.StateRecord;
-import com.clickhouse.kafka.connect.sink.state.provider.InMemoryState;
-import com.clickhouse.kafka.connect.sink.state.provider.RedisStateProvider;
 import com.clickhouse.kafka.connect.util.Utils;
-import com.clickhouse.kafka.connect.util.jmx.SinkTaskStatistics;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.ErrantRecordReporter;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Collection;
+import java.util.Map;
 
 public class ClickHouseSinkTask extends SinkTask {
 
@@ -61,7 +50,12 @@ public class ClickHouseSinkTask extends SinkTask {
     @Override
     public void put(Collection<SinkRecord> records) {
         try {
+            long putStat = System.currentTimeMillis();
             this.proxySinkTask.put(records);
+            long putEnd = System.currentTimeMillis();
+            if (!records.isEmpty()) {
+                LOGGER.info("Put records: {} in {} ms", records.size(), putEnd - putStat);
+            }
         } catch (Exception e) {
             LOGGER.trace("Passing the exception to the exception handler.");
             boolean errorTolerance = clickHouseSinkConfig != null && clickHouseSinkConfig.isErrorsTolerance();

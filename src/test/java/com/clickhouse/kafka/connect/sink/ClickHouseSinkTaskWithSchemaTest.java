@@ -3,24 +3,29 @@ package com.clickhouse.kafka.connect.sink;
 import com.clickhouse.kafka.connect.sink.db.helper.ClickHouseHelperClient;
 import com.clickhouse.kafka.connect.sink.helper.ClickHouseTestHelpers;
 import com.clickhouse.kafka.connect.sink.helper.SchemaTestData;
-import com.clickhouse.kafka.connect.sink.junit.extension.SinceClickHouseVersion;
 import com.clickhouse.kafka.connect.sink.junit.extension.FromVersionConditionExtension;
+import com.clickhouse.kafka.connect.sink.junit.extension.SinceClickHouseVersion;
 import com.clickhouse.kafka.connect.util.Utils;
 import org.apache.kafka.connect.errors.DataException;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.shaded.org.apache.commons.lang3.RandomUtils;
 
+import java.awt.desktop.SystemSleepEvent;
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.clickhouse.kafka.connect.sink.ClickHouseSinkConfig.TABLE_REFRESH_INTERVAL;
 import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(FromVersionConditionExtension.class)
@@ -528,6 +533,7 @@ public class ClickHouseSinkTaskWithSchemaTest extends ClickHouseBase {
         assertEquals(sr.size(), ClickHouseTestHelpers.countRows(chc, topic));
     }
 
+    @Disabled("Disabled because it requires a flag on the instance.")
     @Test
     @SinceClickHouseVersion("24.1")
     public void schemaWithTupleOfMapsWithVariantTest() {
@@ -586,10 +592,14 @@ public class ClickHouseSinkTaskWithSchemaTest extends ClickHouseBase {
         }
     }
 
+    @Disabled("Disabled because it requires a flag on the instance.")
     @Test
     @SinceClickHouseVersion("24.1")
     public void schemaWithNestedTupleMapArrayAndVariant() {
-        Assumptions.assumeFalse(isCloud, "Skip test since experimental is not available in cloud");
+        if (isCloud) {
+            LOGGER.warn("Skip test since experimental is not available in cloud");
+            return;
+        }
         Map<String, String> props = createProps();
         ClickHouseHelperClient chc = createClient(props);
         String topic = "nested-tuple-map-array-and-variant-table-test";
@@ -653,5 +663,217 @@ public class ClickHouseSinkTaskWithSchemaTest extends ClickHouseBase {
                     assertEquals(expectedString, object)
             );
         }
+    }
+
+    @Test
+    public void unsignedIntegers() {
+        Map<String, String> props = createProps();
+        ClickHouseHelperClient chc = createClient(props);
+
+        String topic = createTopicName("unsigned-integers-table-test");
+        ClickHouseTestHelpers.dropTable(chc, topic);
+        ClickHouseTestHelpers.createTable(chc, topic, "CREATE TABLE `%s` (" +
+                "`off16` Int16," +
+                "`uint8` UInt8," +
+                "`uint16` UInt16," +
+                "`uint32` UInt32," +
+                "`uint64` UInt64" +
+                ") Engine = MergeTree ORDER BY `off16`");
+        Collection<SinkRecord> sr = SchemaTestData.createUnsignedIntegers(topic, 1);
+
+        ClickHouseSinkTask chst = new ClickHouseSinkTask();
+        chst.start(props);
+        chst.put(sr);
+        chst.stop();
+        assertEquals(sr.size(), ClickHouseTestHelpers.countRows(chc, topic));
+    }
+
+    @Test
+    public void changeSchemaWhileRunning() throws InterruptedException {
+        Map<String, String> props = createProps();
+        ClickHouseHelperClient chc = createClient(props);
+        String topic = createTopicName("change-schema-while-running-table-test");
+        ClickHouseTestHelpers.dropTable(chc, topic);
+        ClickHouseTestHelpers.createTable(chc, topic, "CREATE TABLE `%s` (" +
+                "`off16` Int16," +
+                "`string` String" +
+                ") Engine = MergeTree ORDER BY `off16`");
+        Collection<SinkRecord> sr = SchemaTestData.createSimpleData(topic, 1);
+
+        int numRecords = sr.size();
+        ClickHouseSinkTask chst = new ClickHouseSinkTask();
+        chst.start(props);
+        chst.put(sr);
+        assertEquals(sr.size(), ClickHouseTestHelpers.countRows(chc, topic));
+
+
+        ClickHouseTestHelpers.createTable(chc, topic, "ALTER TABLE `%s` ADD COLUMN num32 Nullable(Int32) AFTER string");
+        Thread.sleep(5000);
+        sr = SchemaTestData.createSimpleExtendWithNullableData(topic, 1, 10000, 2000);
+        int numRecordsWithNullable = sr.size();
+        chst.put(sr);
+
+        ClickHouseTestHelpers.createTable(chc, topic, "ALTER TABLE `%s` ADD COLUMN num32_default Int32 DEFAULT 0 AFTER num32");
+        Thread.sleep(5000);
+
+        sr = SchemaTestData.createSimpleExtendWithDefaultData(topic, 1, 20000, 3000);
+        int numRecordsWithDefault = sr.size();
+        System.out.println("numRecordsWithDefault: " + numRecordsWithDefault);
+        chst.put(sr);
+        ClickHouseTestHelpers.getAllRowsAsJson(chc, topic).forEach(row -> {
+            //System.out.println(row);
+        });
+        chst.stop();
+        assertEquals(numRecords + numRecordsWithNullable + numRecordsWithDefault, ClickHouseTestHelpers.countRows(chc, topic));
+    }
+    @Test
+    public void changeSchemaWhileRunningWithRefreshEnabled() throws InterruptedException {
+        Map<String, String> props = createProps();
+        ClickHouseHelperClient chc = createClient(props);
+        props.put(TABLE_REFRESH_INTERVAL, "1");
+        String topic = createTopicName("change-schema-while-running-table-test-with-refresh-enabled");
+        ClickHouseTestHelpers.dropTable(chc, topic);
+        ClickHouseTestHelpers.createTable(chc, topic, "CREATE TABLE `%s` (" +
+                "`off16` Int16," +
+                "`string` String" +
+                ") Engine = MergeTree ORDER BY `off16`");
+        Collection<SinkRecord> sr = SchemaTestData.createSimpleData(topic, 1);
+
+        int numRecords = sr.size();
+        ClickHouseSinkTask chst = new ClickHouseSinkTask();
+        chst.start(props);
+        chst.put(sr);
+        assertEquals(sr.size(), ClickHouseTestHelpers.countRows(chc, topic));
+
+
+        ClickHouseTestHelpers.createTable(chc, topic, "ALTER TABLE `%s` ADD COLUMN num32 Nullable(Int32) AFTER string");
+        Thread.sleep(5000);
+        sr = SchemaTestData.createSimpleExtendWithNullableData(topic, 1, 10000, 2000);
+        int numRecordsWithNullable = sr.size();
+        chst.put(sr);
+
+        ClickHouseTestHelpers.createTable(chc, topic, "ALTER TABLE `%s` ADD COLUMN num32_default Int32 DEFAULT 0 AFTER num32");
+        Thread.sleep(5000);
+
+        sr = SchemaTestData.createSimpleExtendWithDefaultData(topic, 1, 20000, 3000);
+        int numRecordsWithDefault = sr.size();
+        System.out.println("numRecordsWithDefault: " + numRecordsWithDefault);
+        chst.put(sr);
+        ClickHouseTestHelpers.getAllRowsAsJson(chc, topic).forEach(row -> {
+            //System.out.println(row);
+        });
+        chst.stop();
+        assertEquals(numRecords + numRecordsWithNullable + numRecordsWithDefault, ClickHouseTestHelpers.countRows(chc, topic));
+    }
+    @Test
+    public void tupleTest() {
+        Map<String, String> props = createProps();
+        ClickHouseHelperClient chc = createClient(props);
+        String topic = createTopicName("tuple-table-test");
+
+        ClickHouseTestHelpers.dropTable(chc, topic);
+        ClickHouseTestHelpers.createTable(chc, topic, "CREATE TABLE `%s` (" +
+                "`off16` Int16," +
+                "`string` String," +
+                "`t` Tuple(" +
+                "    `off16` Nullable(Int16)," +
+                "    `string` Nullable(String) " +
+                ")) Engine = MergeTree ORDER BY `off16`");
+
+        Collection<SinkRecord> sr = SchemaTestData.createTupleSimpleData(topic, 1);
+
+        ClickHouseSinkTask chst = new ClickHouseSinkTask();
+        chst.start(props);
+        chst.put(sr);
+        chst.stop();
+
+        assertEquals(sr.size(), ClickHouseTestHelpers.countRows(chc, topic));
+    }
+    @Test
+    public void tupleTestWithDefault() {
+        Map<String, String> props = createProps();
+        ClickHouseHelperClient chc = createClient(props);
+        String topic = createTopicName("tuple-table-test-default");
+
+        ClickHouseTestHelpers.dropTable(chc, topic);
+        ClickHouseTestHelpers.createTable(chc, topic, "CREATE TABLE `%s` (" +
+                "`off16` Int16," +
+                "`string` String," +
+                "`insert_datetime` DateTime default now()," +
+                "`t` Tuple(" +
+                "    `off16` Nullable(Int16)," +
+                "    `string` Nullable(String) " +
+                ")" +
+                ") Engine = MergeTree ORDER BY `off16`");
+
+        Collection<SinkRecord> sr = SchemaTestData.createTupleSimpleData(topic, 1);
+
+        ClickHouseSinkTask chst = new ClickHouseSinkTask();
+        chst.start(props);
+        chst.put(sr);
+        chst.stop();
+
+        assertEquals(sr.size(), ClickHouseTestHelpers.countRows(chc, topic));
+    }
+
+    @Test
+    public void nestedTupleTestWithDefault() {
+        Map<String, String> props = createProps();
+        ClickHouseHelperClient chc = createClient(props);
+        String topic = createTopicName("nested-tuple-table-test-default");
+
+        ClickHouseTestHelpers.dropTable(chc, topic);
+        ClickHouseTestHelpers.createTable(chc, topic, "CREATE TABLE `%s` (" +
+                "`off16` Int16," +
+                "`string` String," +
+                "`insert_datetime` DateTime default now()," +
+                "`t` Tuple(" +
+                "    `off16` Nullable(Int16)," +
+                "    `string` Nullable(String), " +
+                "    `n` Tuple(" +
+                "    `off16` Nullable(Int16)," +
+                "    `string` Nullable(String) " +
+                ")" +
+                ")" +
+                ") Engine = MergeTree ORDER BY `off16`");
+
+        Collection<SinkRecord> sr = SchemaTestData.createNestedTupleSimpleData(topic, 1);
+
+        ClickHouseSinkTask chst = new ClickHouseSinkTask();
+        chst.start(props);
+        chst.put(sr);
+        chst.stop();
+
+        assertEquals(sr.size(), ClickHouseTestHelpers.countRows(chc, topic));
+    }
+
+    @Test
+    public void coolSchemaWithRandomFields() {
+        Map<String, String> props = createProps();
+        ClickHouseHelperClient chc = createClient(props);
+        String topic = createTopicName("cool-schema-with-random-field");
+
+        ClickHouseTestHelpers.dropTable(chc, topic);
+        ClickHouseTestHelpers.createTable(chc, topic, "CREATE TABLE `%s` (" +
+                "`processing_time` DateTime," +
+                "`insert_time` DateTime DEFAULT now()," +
+                "`type` String," +
+                "`player` Tuple(id Nullable(Int64), key Nullable(String), ip Nullable(String), label Nullable(String), device_id Nullable(Int64), player_tracker_id Nullable(Int64), is_new_player Nullable(Bool), player_root Nullable(String), target Nullable(String), `type` Nullable(String), name Nullable(String), processing_time Nullable(Int64), tags Map(String, String), session_id Nullable(String), machine_fingerprint Nullable(String), player_fingerprint Nullable(String))," +
+                "`sensor` Tuple(sensor_id String, origin_device String, session_id String, machine_id Int64, machine_timestamp String)," +
+                "`data` String, " +
+                "`id` String, " +
+                "`desc` Nullable(String), " +
+                "`tag` Nullable(String), " +
+                "`va` Nullable(Float64) " +
+                ") Engine = MergeTree ORDER BY `processing_time`");
+
+        Collection<SinkRecord> sr = SchemaTestData.createCoolSchemaWithRandomFields(topic, 1);
+
+        ClickHouseSinkTask chst = new ClickHouseSinkTask();
+        chst.start(props);
+        chst.put(sr);
+        chst.stop();
+
+        assertEquals(sr.size(), ClickHouseTestHelpers.countRows(chc, topic));
     }
 }

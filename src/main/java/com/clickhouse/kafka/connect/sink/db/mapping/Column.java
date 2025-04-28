@@ -8,11 +8,16 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuple3;
-import reactor.util.function.Tuples;
+import com.clickhouse.kafka.connect.util.reactor.function.Tuple2;
+import com.clickhouse.kafka.connect.util.reactor.function.Tuple3;
+import com.clickhouse.kafka.connect.util.reactor.function.Tuples;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -183,6 +188,9 @@ public class Column {
                     .build();
         } else if (valueType.startsWith("Array")) {
             Column arrayType = extractColumn(name, valueType.substring("Array".length() + 1, valueType.length() - 1), false, isSubColumn, hasDefaultValue, arrayDepth + 1);
+            if (arrayType == null) {
+                return null;
+            }
 
             Column array = builder.type(Type.ARRAY)
                     .arrayType(arrayType)
