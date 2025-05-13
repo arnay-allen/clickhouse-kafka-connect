@@ -91,7 +91,10 @@ public class ProxySinkTask {
                 .map(v -> Record.convert(v,
                         clickHouseSinkConfig.isEnableDbTopicSplit(),
                         clickHouseSinkConfig.getDbTopicSplitChar(),
-                        clickHouseSinkConfig.getDatabase() ))
+                        clickHouseSinkConfig.getDatabase(),
+                        clickHouseSinkConfig.getSource(),
+                        clickHouseSinkConfig.getDbType(),
+                        clickHouseSinkConfig.getIdField()))
                 .collect(Collectors.groupingBy(!clickHouseSinkConfig.isExactlyOnce() && clickHouseSinkConfig.isIgnorePartitionsWhenBatching()
                         ? Record::getTopic : Record::getTopicAndPartition));
 
